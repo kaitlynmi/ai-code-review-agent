@@ -37,12 +37,29 @@ GitHub Webhook → FastAPI → Redis Queue → Worker Pool → GitHub
 ## Month 1: Core System (Weeks 1-4)
 
 ### Week 1: Foundation
-- [ ] Project setup (Poetry, FastAPI skeleton)
-- [ ] PostgreSQL schema (`pull_requests`, `reviews` tables)
-- [ ] Redis connection
-- [ ] Environment config
+- [x] Project setup (Poetry, FastAPI skeleton)
+  - ✅ Poetry configuration with all dependencies
+  - ✅ FastAPI application structure
+  - ✅ Project structure (app/, migrations/, tests/)
+  - ✅ Docker Compose setup
+  - ✅ Git repository initialized and pushed to GitHub
+  - ✅ Start script created
+- [x] PostgreSQL schema (`pull_requests`, `reviews` tables)
+  - ✅ Database schema created in `migrations/001_initial_schema.sql`
+  - ✅ All tables and indexes created
+  - ✅ Schema applied to database
+- [x] Redis connection
+  - ✅ Redis client module created (`app/db/redis_client.py`)
+  - ✅ Connection pool management implemented
+  - ⚠️ Connection issue: Database connection fails on startup (needs Docker services running)
+- [x] Environment config
+  - ✅ Pydantic settings configuration
+  - ✅ Environment variables setup
+  - ✅ `.env` file template created
+  - ✅ Configuration documentation
 
-**Deliverable:** Basic app with DB connections working
+**Progress:** 95% complete - Need to fix database connection on startup
+**Deliverable:** Basic app with DB connections working (⚠️ Connection needs Docker services)
 
 ### Week 2: Webhook Integration
 - [ ] GitHub webhook endpoint (`POST /webhooks/github`)
@@ -135,13 +152,22 @@ GitHub Webhook → FastAPI → Redis Queue → Worker Pool → GitHub
 **Deliverable:** Real usage metrics and examples
 
 ### Week 12: Documentation
-- [ ] README (overview, architecture diagram, setup, examples)
+- [x] README (overview, architecture diagram, setup, examples)
+  - ✅ Project overview and architecture
+  - ✅ Setup instructions
+  - ✅ Tech stack documented
+  - ✅ Project structure documented
 - [ ] API documentation (OpenAPI/Swagger)
+  - ✅ Auto-generated via FastAPI (available at /docs)
+  - [ ] Custom documentation improvements needed
 - [ ] Architecture Decision Records (ADRs)
 - [ ] Demo video (3-5 minutes)
-- [ ] Clean commit history, CI badge, screenshots
+- [x] Clean commit history
+  - ✅ Initial commit with proper structure
+  - ✅ Documentation commit
+- [ ] CI badge, screenshots
 
-**Deliverable:** Professional, demo-ready repository
+**Deliverable:** Professional, demo-ready repository (60% complete)
 
 ---
 
@@ -358,10 +384,34 @@ respx = "^0.20.0"  # HTTP mocking
 
 ---
 
+## 📈 当前进度
+
+**最后更新:** 2025-11-03
+
+### 已完成 ✅
+- Week 1: Foundation (95% 完成)
+  - ✅ Project setup (Poetry, FastAPI, Docker)
+  - ✅ PostgreSQL schema and migrations
+  - ✅ Database and Redis connection modules
+  - ✅ Environment configuration
+  - ✅ Git repository and GitHub push
+  - ⚠️ Database connection issue on startup (needs Docker services)
+
+### 进行中 🔄
+- Week 1: Fixing database connection issue
+
+### 待开始 📋
+- Week 2-12: All remaining tasks
+  - See detailed progress in `PROGRESS.md`
+
+**总体完成度:** ~8% (Week 1 mostly complete, Week 2-12 not started)
+
+---
+
 ## Project Timeline
 
-- **Month 1:** Core system working end-to-end
-- **Month 2:** Optimization (caching, concurrency, observability)
-- **Month 3:** Testing, real usage, documentation
+- **Month 1:** Core system working end-to-end (Week 1: 95%, Week 2-4: 0%)
+- **Month 2:** Optimization (caching, concurrency, observability) (0%)
+- **Month 3:** Testing, real usage, documentation (0%)
 
 **Total:** 12 weeks to demo-ready portfolio project
