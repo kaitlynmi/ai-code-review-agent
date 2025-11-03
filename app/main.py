@@ -75,7 +75,7 @@ async def health_check():
         }
 
 
-# TODO: Add webhook routes
-# from app.api import webhooks
-# app.include_router(webhooks.router, prefix="/webhooks", tags=["webhooks"])
+# Webhook routes
+from app.api import webhooks
+app.include_router(webhooks.router, prefix="/webhooks", tags=["webhooks"])
 

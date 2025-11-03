@@ -13,8 +13,8 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
 
     # GitHub
-    github_webhook_secret: str
-    github_token: str
+    github_webhook_secret: str = "your_webhook_secret_here"
+    github_token: str = "your_github_token_here"
 
     # OpenAI
     openai_api_key: str
