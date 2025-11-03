@@ -84,12 +84,18 @@ redis-server
 ### 5. Start the Application
 
 ```bash
-# Activate Poetry shell
-poetry shell
+# Method 1: Using the start script (recommended)
+./start.sh
 
-# Run development server
+# Method 2: Using Poetry directly
+poetry run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# Method 3: Activate Poetry shell first
+poetry shell
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
+
+**重要提示：** 应用入口是 `app.main:app`，不是 `main:app`。
 
 The API will be available at `http://localhost:8000`
 
