@@ -84,18 +84,28 @@ redis-server
 ### 5. Start the Application
 
 ```bash
-# Method 1: Using the start script (recommended)
+# Method 1: Using the development script (recommended - automatically starts Docker services)
+./scripts/start-dev.sh
+
+# Method 2: Using the simple start script (requires Docker services already running)
 ./start.sh
 
-# Method 2: Using Poetry directly
+# Method 3: Manual start (requires Docker services already running)
+# First, ensure Docker services are running:
+docker-compose up -d
+
+# Then start the application:
 poetry run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
-# Method 3: Activate Poetry shell first
+# Method 4: Activate Poetry shell first
 poetry shell
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-**重要提示：** 应用入口是 `app.main:app`，不是 `main:app`。
+**重要提示：** 
+- 应用入口是 `app.main:app`，不是 `main:app`
+- 推荐使用 `./scripts/start-dev.sh`，它会自动启动 Docker Compose 服务
+- 如果使用其他方法，请确保 Docker 服务已运行：`docker-compose up -d`
 
 The API will be available at `http://localhost:8000`
 
