@@ -111,6 +111,25 @@ The API will be available at `http://localhost:8000`
 
 - API docs: `http://localhost:8000/docs`
 - Health check: `http://localhost:8000/health`
+- Queue metrics: `http://localhost:8000/api/metrics`
+
+### 6. Start the Worker (for processing jobs)
+
+In a separate terminal, start the worker to process jobs from the queue:
+
+```bash
+# Start the worker
+./scripts/start-worker.sh
+
+# Or manually:
+poetry run python -m app.queue.consumer
+```
+
+The worker will:
+- Connect to Redis and read jobs from the stream
+- Process PR review jobs asynchronously
+- Update job status in the database
+- Handle retries and failures gracefully
 
 ## 📁 Project Structure
 

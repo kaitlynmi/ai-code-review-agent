@@ -54,3 +54,4 @@ Thumbs.db
 # Project specific
 migrations/versions/*.pyc
 
+ai-code-review-agent-dev.2025-11-03.private-key.pem

@@ -79,3 +79,7 @@ async def health_check():
 from app.api import webhooks
 app.include_router(webhooks.router, prefix="/webhooks", tags=["webhooks"])
 
+# Metrics routes
+from app.api import metrics
+app.include_router(metrics.router, prefix="/api", tags=["metrics"])
+

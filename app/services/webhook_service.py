@@ -2,6 +2,7 @@
 
 from app.core.logging import get_logger
 from app.db.connection import get_db_pool
+from app.queue.producer import enqueue_review_job
 
 logger = get_logger(__name__)
 
@@ -37,10 +38,25 @@ class WebhookService:
                 repo_full_name=repo_full_name,
             )
             
+            # Enqueue job for async processing
+            job_id = await enqueue_review_job(
+                pr_id=pr_id,
+                pr_number=pr_number,
+                repo_full_name=repo_full_name,
+                metadata={
+                    "webhook_received_at": pull_request.get("created_at", ""),
+                    "action": payload.get("action", ""),
+                },
+            )
+            
+            # Update PR with job_id and status
+            await WebhookService._update_pr_with_job(pr_id, job_id)
+            
             return {
                 "pr_id": pr_id,
                 "pr_number": pr_number,
                 "repo_full_name": repo_full_name,
+                "job_id": job_id,
             }
             
         except Exception as e:
@@ -77,7 +93,7 @@ class WebhookService:
                 await conn.execute(
                     """
                     UPDATE pull_requests
-                    SET status = 'pending', updated_at = NOW()
+                    SET status = 'queued', updated_at = NOW()
                     WHERE id = $1
                     """,
                     existing["id"],
@@ -92,7 +108,7 @@ class WebhookService:
                 pr_id = await conn.fetchval(
                     """
                     INSERT INTO pull_requests (pr_number, repo_full_name, status)
-                    VALUES ($1, $2, 'pending')
+                    VALUES ($1, $2, 'queued')
                     RETURNING id
                     """,
                     pr_number,
@@ -103,4 +119,20 @@ class WebhookService:
                     f"(id: {pr_id})"
                 )
                 return pr_id
+    
+    @staticmethod
+    async def _update_pr_with_job(pr_id: int, job_id: str) -> None:
+        """Update PR with job_id and enqueued timestamp."""
+        pool = await get_db_pool()
+        
+        async with pool.acquire() as conn:
+            await conn.execute(
+                """
+                UPDATE pull_requests
+                SET job_id = $1, enqueued_at = NOW(), status = 'queued'
+                WHERE id = $2
+                """,
+                job_id,
+                pr_id,
+            )
 
