@@ -64,8 +64,18 @@ BODY=$(echo "$RESPONSE" | sed '/HTTP_CODE/d')
 
 if [ "$HTTP_CODE" = "200" ]; then
     echo -e "${GREEN}✅ Webhook accepted${NC}"
-    JOB_ID=$(echo "$BODY" | python3 -c "import sys, json; print(json.load(sys.stdin).get('job_id', 'N/A'))" 2>/dev/null || echo "N/A")
-    echo "   Job ID: $JOB_ID"
+    # Try to extract job_id from response
+    if command -v jq &> /dev/null; then
+        JOB_ID=$(echo "$BODY" | jq -r '.job_id // empty' 2>/dev/null || echo "")
+    else
+        JOB_ID=$(echo "$BODY" | python3 -c "import sys, json; data=json.load(sys.stdin); print(data.get('job_id', ''))" 2>/dev/null || echo "")
+    fi
+    if [ -n "$JOB_ID" ] && [ "$JOB_ID" != "null" ]; then
+        echo "   Job ID: $JOB_ID"
+    else
+        echo "   Job ID: (check webhook response)"
+        echo "   Response: $BODY"
+    fi
 else
     echo -e "${RED}❌ Webhook failed (HTTP $HTTP_CODE)${NC}"
     echo "$BODY"
