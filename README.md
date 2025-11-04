@@ -131,6 +131,32 @@ The worker will:
 - Update job status in the database
 - Handle retries and failures gracefully
 
+### 7. Testing
+
+Run the automated test script:
+
+```bash
+./scripts/test_queue.sh
+```
+
+Or follow the manual testing guide: `docs/TESTING_GUIDE.md`
+
+Quick test:
+```bash
+# 1. Send a test webhook
+curl -X POST http://localhost:8000/webhooks/github \
+  -H "Content-Type: application/json" \
+  -H "X-Hub-Signature-256: sha256=..." \
+  -H "X-GitHub-Event: pull_request" \
+  -d '{"action":"opened","pull_request":{"number":123},"repository":{"full_name":"test/repo"}}'
+
+# 2. Check queue metrics
+curl http://localhost:8000/api/metrics
+
+# 3. Check database
+docker exec code_review_postgres psql -U user -d code_review_db -c "SELECT * FROM pull_requests;"
+```
+
 ## 📁 Project Structure
 
 ```
