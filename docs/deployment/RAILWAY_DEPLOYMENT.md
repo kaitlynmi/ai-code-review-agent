@@ -151,7 +151,17 @@ The worker runs as a separate service on Railway.
    - Or use Pre-Deploy step to set it dynamically
    - Or manually set: `python -m app.queue.consumer` directly in the start command field
 
-3. **Settings** → **Restart Policy:** "Always"
+3. **Settings** → **Restart Policy:** 
+   
+   **Important:** Set to "Always" for worker service
+   
+   - Go to worker service → "Settings" → "Restart Policy"
+   - Select: **"Always"** (not "On Failure")
+   - This ensures the worker automatically restarts if it crashes or stops
+   - Worker must run continuously to process jobs from the queue
+   
+   **Note:** If restart policy is locked, it may be because `railway.toml` was setting it globally.
+   The updated `railway.toml` no longer sets restart policy, so you should be able to configure it per service.
 
 ### 3.3 Deploy Worker
 
