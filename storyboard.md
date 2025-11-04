@@ -51,7 +51,6 @@ GitHub Webhook → FastAPI → Redis Queue → Worker Pool → GitHub
 - [x] Redis connection
   - ✅ Redis client module created (`app/db/redis_client.py`)
   - ✅ Connection pool management implemented
-  - ⚠️ Connection issue: Database connection fails on startup (needs Docker services running)
 - [x] Environment config
   - ✅ Pydantic settings configuration
   - ✅ Environment variables setup
@@ -446,47 +445,109 @@ respx = "^0.20.0"  # HTTP mocking
 
 ---
 
-## 📈 当前进度
+## 📈 项目进度
 
 **最后更新:** 2025-11-04
 
-### 已完成 ✅
-- Week 1: Foundation (100% 完成)
-  - ✅ Project setup (Poetry, FastAPI, Docker)
-  - ✅ PostgreSQL schema and migrations
-  - ✅ Database and Redis connection modules
-  - ✅ Environment configuration
-  - ✅ Git repository and GitHub push
-  - ✅ Docker Compose integration in startup scripts
-- Week 2: Webhook Integration (100% 完成)
-  - ✅ GitHub webhook endpoint created
-  - ✅ Signature verification implemented
-  - ✅ PR payload parsing and validation
-  - ✅ Database storage for PR metadata
-  - ✅ GitHub App successfully configured
-  - ✅ Endpoint receiving and processing events
-- Week 3: Job Queue (100% 完成)
-  - ✅ Redis Streams producer and consumer
-  - ✅ Worker lifecycle management
-  - ✅ Job status tracking and transitions
-  - ✅ Error handling with retries
-  - ✅ Dead letter queue
-  - ✅ Admin dashboard with HTML UI
-  - ✅ Metrics and observability
-- Week 4: LLM Integration (100% 完成)
-  - ✅ Multi-provider LLM abstraction (Claude, OpenAI, Zhipu)
-  - ✅ GitHub App authentication for posting comments
-  - ✅ PR diff fetching and preprocessing
-  - ✅ LLM response parsing with severity and categories
-  - ✅ Code snippet support in review comments
-  - ✅ Enhanced review capabilities (timeout detection, resource leaks, code quality)
-  - ✅ Issue grouping to reduce repetition
-  - ✅ End-to-end review flow working
+### 总体进度
 
-### 进行中 🔄
-- Week 5-12: Optimization and production hardening
+| 阶段 | 完成度 | 状态 |
+|------|--------|------|
+| Week 1: Foundation | 100% | ✅ 完成 |
+| Week 2: Webhook Integration | 100% | ✅ 完成 |
+| Week 3: Job Queue | 100% | ✅ 完成 |
+| Week 4: LLM Integration | 100% | ✅ 完成 |
+| Week 5-8: Optimization | 0% | 🔄 待开始 |
+| Week 9-12: Production Hardening | 0% | 🔄 待开始 |
 
-**总体完成度:** ~33% (Week 1-4 complete, Week 5-12 pending)
+**总体完成度:** ~33% (Week 1-4 完成，Week 5-12 待开始)
+
+### 详细完成情况
+
+#### Week 1: Foundation (100% ✅)
+- ✅ Poetry 配置和依赖管理
+- ✅ FastAPI 应用骨架和项目结构
+- ✅ Docker Compose 配置（PostgreSQL 15, Redis 7）
+- ✅ PostgreSQL schema 和迁移文件
+- ✅ 数据库和 Redis 连接模块
+- ✅ 环境配置（Pydantic Settings）
+- ✅ 结构化日志（structlog）
+- ✅ Git 仓库初始化和 GitHub 推送
+- ✅ 启动脚本和 Docker 服务自动管理
+- ✅ 连接重试逻辑
+
+#### Week 2: Webhook Integration (100% ✅)
+- ✅ GitHub webhook 端点 (`POST /webhooks/github`)
+- ✅ HMAC SHA-256 签名验证
+- ✅ PR payload 解析和验证
+- ✅ PR 元数据存储到 PostgreSQL
+- ✅ GitHub App 配置和事件接收
+- ✅ 错误处理和日志记录
+
+#### Week 3: Job Queue (100% ✅)
+- ✅ Redis Streams producer (XADD)
+- ✅ Redis Streams consumer (XREADGROUP)
+- ✅ Job 状态跟踪和数据库更新
+- ✅ Worker 生命周期管理（信号处理、优雅关闭）
+- ✅ 错误处理和重试逻辑（最多 3 次，指数退避）
+- ✅ Dead letter queue
+- ✅ 管理仪表板（HTML UI）
+- ✅ Metrics 端点和可观测性
+
+#### Week 4: LLM Integration (100% ✅)
+- ✅ 多提供商 LLM 抽象（Claude, OpenAI, Zhipu）
+- ✅ GitHub App 认证（JWT + installation token）
+- ✅ PR diff 获取和预处理
+- ✅ LLM 响应解析（严重性分类、代码片段、问题分组）
+- ✅ 评论发布到 GitHub PR（带严重性徽章和代码片段）
+- ✅ 增强的代码审查能力：
+  - ✅ 网络请求超时检测
+  - ✅ 数据库资源泄漏检测
+  - ✅ 代码质量改进建议
+  - ✅ 安全漏洞检测
+- ✅ 端到端流程测试
+
+### 已知问题和解决方案
+
+#### ✅ 数据库连接问题（已解决）
+**问题:** 应用启动时无法连接到 PostgreSQL  
+**解决方案:**
+- ✅ 添加连接重试逻辑（5 次重试，每次间隔 2 秒）
+- ✅ 创建启动脚本自动管理 Docker Compose 服务
+- ✅ `start.sh` 和 `scripts/start-dev.sh` 自动启动并等待 Docker 服务就绪
+
+**使用方法:**
+```bash
+# 推荐方式：自动启动 Docker 服务
+./scripts/start-dev.sh
+
+# 或使用简单启动脚本
+./start.sh
+```
+
+### 关键指标
+
+#### 代码统计
+- **总文件数:** 25+
+- **代码行数:** ~4,000+
+- **测试覆盖率:** 0% (待开始)
+
+#### 功能完成度
+- **基础设施:** 100% ✅
+- **Webhook 集成:** 100% ✅
+- **Job Queue 系统:** 100% ✅
+- **LLM 集成:** 100% ✅
+- **核心功能:** 100% (完整端到端流程) ✅
+- **测试:** 0% (待开始)
+- **文档:** 85%
+- **管理仪表板:** 100% ✅
+
+### 相关链接
+
+- **GitHub 仓库:** https://github.com/mi-qing00/ai-code-review-agent
+- **本地应用:** http://localhost:8000
+- **API 文档:** http://localhost:8000/docs
+- **管理仪表板:** http://localhost:8000/admin
 
 ---
 
