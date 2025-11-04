@@ -133,7 +133,19 @@ async def consume_jobs() -> None:
     """Main consumer loop - reads jobs from Redis Streams and processes them."""
     global shutdown_requested
     
-    redis = await get_redis()
+    print("=" * 60, file=sys.stderr)
+    print("📥 consume_jobs() called", file=sys.stderr)
+    print("=" * 60, file=sys.stderr)
+    
+    print("🔌 Connecting to Redis...", file=sys.stderr)
+    try:
+        redis = await get_redis()
+        print("✅ Redis connection established", file=sys.stderr)
+    except Exception as e:
+        print(f"❌ Redis connection failed: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
+        raise
     
     # Create consumer group if it doesn't exist
     try:
@@ -323,30 +335,59 @@ async def move_to_dead_letter(job_data: JobData) -> None:
 
 async def run_worker() -> None:
     """Run the worker process."""
+    print("=" * 60, file=sys.stderr)
+    print("🔧 run_worker() called", file=sys.stderr)
+    print("=" * 60, file=sys.stderr)
+    
     # Setup signal handlers
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
+    try:
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
+        print("✅ Signal handlers registered", file=sys.stderr)
+    except Exception as e:
+        print(f"⚠️  Signal handler setup warning: {e}", file=sys.stderr)
     
     logger.info("Starting review worker...")
-    print("🚀 Review worker starting...")  # Also print to stdout for visibility
+    print("🚀 Review worker starting...", file=sys.stderr)
+    print("🚀 Review worker starting...", file=sys.stdout)
     
     try:
+        print("📞 Calling consume_jobs()...", file=sys.stderr)
         await consume_jobs()
+        print("⚠️  consume_jobs() returned (unexpected)", file=sys.stderr)
     except KeyboardInterrupt:
         logger.info("Worker interrupted by user")
-        print("⚠️  Worker interrupted by user")
+        print("⚠️  Worker interrupted by user", file=sys.stderr)
     except Exception as e:
         logger.error(f"Worker error: {e}", exc_info=True)
-        print(f"❌ Worker error: {e}")
+        print(f"❌ Worker error: {e}", file=sys.stderr)
         import traceback
         traceback.print_exc()
     finally:
         logger.info("Worker stopped")
-        print("🛑 Worker stopped")
+        print("🛑 Worker stopped", file=sys.stderr)
 
 
 # Worker can be run as:
 # python -m app.queue.consumer
 # or
 # ./scripts/start-worker.sh
+
+if __name__ == "__main__":
+    # This allows running: python -m app.queue.consumer
+    # or directly: python app/queue/consumer.py
+    import asyncio
+    from app.core.logging import setup_logging
+    
+    setup_logging()
+    print("🚀 Starting worker from consumer.py...", file=sys.stderr)
+    
+    try:
+        asyncio.run(run_worker())
+    except KeyboardInterrupt:
+        print("\n⚠️  Worker stopped by user", file=sys.stderr)
+    except Exception as e:
+        print(f"❌ Worker error: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
 

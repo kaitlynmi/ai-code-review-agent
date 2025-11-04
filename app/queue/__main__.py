@@ -2,31 +2,57 @@
 
 import asyncio
 import sys
+import os
+
+# Print to both stdout and stderr for visibility
+def log(msg):
+    print(msg, file=sys.stderr)
+    print(msg, file=sys.stdout)
+
+log("=" * 60)
+log("🔧 Worker startup - Step 1: Initializing...")
+log("=" * 60)
 
 # Setup logging first - this is critical
-from app.core.logging import setup_logging
-setup_logging()
-
-print("🔧 Initializing worker...", file=sys.stderr)
+try:
+    log("📝 Setting up logging...")
+    from app.core.logging import setup_logging
+    setup_logging()
+    log("✅ Logging setup complete")
+except Exception as e:
+    log(f"❌ Logging setup failed: {e}")
+    import traceback
+    traceback.print_exc()
+    sys.exit(1)
 
 try:
+    log("📦 Importing worker module...")
     from app.queue.consumer import run_worker
-    print("✅ Worker module imported successfully", file=sys.stderr)
+    log("✅ Worker module imported successfully")
+    log(f"   run_worker function: {run_worker}")
 except Exception as e:
-    print(f"❌ Failed to import worker: {e}", file=sys.stderr)
+    log(f"❌ Failed to import worker: {e}")
     import traceback
     traceback.print_exc()
     sys.exit(1)
 
 if __name__ == "__main__":
-    print("🚀 Starting worker process...", file=sys.stderr)
+    log("=" * 60)
+    log("🚀 Starting worker process...")
+    log("=" * 60)
     try:
+        log("⚙️  Calling asyncio.run(run_worker())...")
         asyncio.run(run_worker())
+        log("⚠️  asyncio.run() returned (unexpected)")
     except KeyboardInterrupt:
-        print("\n⚠️  Worker stopped by user (Ctrl+C)", file=sys.stderr)
+        log("\n⚠️  Worker stopped by user (Ctrl+C)")
         sys.exit(0)
     except Exception as e:
-        print(f"❌ Fatal error in worker: {e}", file=sys.stderr)
+        log(f"❌ Fatal error in worker: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)
+    finally:
+        log("=" * 60)
+        log("🛑 Worker process ended")
+        log("=" * 60)
