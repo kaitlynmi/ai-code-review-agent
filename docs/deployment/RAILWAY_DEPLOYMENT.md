@@ -127,7 +127,30 @@ The worker runs as a separate service on Railway.
    - Paste all variables
    - Or manually add each variable one by one
 
-2. **Settings** → **Start Command:** `python -m app.queue.consumer`
+2. **Settings** → **Start Command:** 
+   
+   **Solution: Use Startup Script with Environment Variable**
+   
+   Railway's `railway.toml` may lock the start command. Use the provided startup script:
+   
+   **For Worker Service:**
+   - Go to worker service → "Settings" → "Start Command"
+   - Set to: `bash scripts/railway_start.sh`
+   - Go to "Variables" → Add environment variable:
+     - Key: `SERVICE_TYPE`
+     - Value: `worker`
+   
+   **For Web Service (if needed):**
+   - Go to web service → "Settings" → "Start Command"  
+   - Set to: `bash scripts/railway_start.sh`
+   - The script will automatically detect it's a web service from the `PORT` environment variable
+   - Or explicitly set: `SERVICE_TYPE=web`
+   
+   **Alternative: Direct Command (if script doesn't work)**
+   - If the start command field is locked, try using Railway's "Override" feature
+   - Or use Pre-Deploy step to set it dynamically
+   - Or manually set: `python -m app.queue.consumer` directly in the start command field
+
 3. **Settings** → **Restart Policy:** "Always"
 
 ### 3.3 Deploy Worker
