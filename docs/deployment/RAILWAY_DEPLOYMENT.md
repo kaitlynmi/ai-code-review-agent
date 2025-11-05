@@ -77,7 +77,7 @@ ENVIRONMENT=production
 
 1. Click on your web service
 2. Go to "Settings" → "Generate Domain"
-3. You'll get a URL like: `https://ai-code-review-agent-production.up.railway.app`
+3. You'll get a URL like: `https://web-production-4a236.up.railway.app`
 4. Copy this URL - you'll need it for Step 4
 
 ## Step 3: Deploy Worker Process
@@ -177,7 +177,7 @@ Railway will automatically deploy when you push to GitHub.
 2. Navigate to "Webhook" section
 3. Update **Webhook URL** to your Railway URL:
    ```
-   https://ai-code-review-agent-production.up.railway.app/webhooks/github
+   https://web-production-4a236.up.railway.app/webhooks/github
    ```
 4. Click "Save changes"
 
@@ -186,7 +186,7 @@ Railway will automatically deploy when you push to GitHub.
 ### 5.1 Check Health Endpoint
 
 ```bash
-curl https://ai-code-review-agent-production.up.railway.app/health
+curl https://web-production-4a236.up.railway.app/health
 ```
 
 Expected response:

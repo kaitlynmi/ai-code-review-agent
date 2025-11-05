@@ -51,6 +51,16 @@ async def process_job(job_data: JobData) -> bool:
 
     github_client = None
     try:
+        print(
+            f"\n{'='*60}",
+            file=sys.stderr
+        )
+        print(
+            f"🔄 Processing job {job_data.job_id} for PR #{job_data.pr_number} "
+            f"from {job_data.repo_full_name} (attempt {job_data.attempt_count + 1})",
+            file=sys.stderr
+        )
+        print(f"{'='*60}", file=sys.stderr)
         logger.info(
             f"Processing job {job_data.job_id} for PR #{job_data.pr_number} "
             f"from {job_data.repo_full_name} (attempt {job_data.attempt_count + 1})"
@@ -84,46 +94,160 @@ async def process_job(job_data: JobData) -> bool:
             github_client = GitHubClient(token=settings.github_token)
         
         # Step 1: Fetch PR diff from GitHub
-        logger.info(f"Fetching diff for PR #{job_data.pr_number} from {job_data.repo_full_name}")
-        diff_context = await github_client.fetch_pr_diff(
-            repo_full_name=job_data.repo_full_name,
+        print(f"[STEP 1] Fetching diff for PR #{job_data.pr_number} from {job_data.repo_full_name}", file=sys.stderr)
+        logger.info(
+            f"[STEP 1] Fetching diff for PR #{job_data.pr_number} from {job_data.repo_full_name}",
+            step="fetching_diff",
             pr_number=job_data.pr_number,
+            repo=job_data.repo_full_name,
         )
-        logger.info(
-            f"Fetched diff: {len(diff_context.changed_files)} files changed, "
-            f"{diff_context.additions} additions, {diff_context.deletions} deletions"
-        )
-        
-        # Step 2: Get LLM provider
-        llm_provider = get_llm_provider()
-        logger.info(f"Using LLM provider: {llm_provider.provider_name} ({llm_provider.model})")
-        
-        # Step 3: Analyze diff with LLM
-        logger.info("Analyzing diff with LLM...")
-        review_result = await llm_provider.analyze_diff(
-            diff_text=diff_context.diff_text,
-            context=diff_context,
-        )
-        logger.info(
-            f"LLM analysis completed: {len(review_result.comments)} comments, "
-            f"{review_result.tokens_used} tokens, ${review_result.cost:.4f} cost, "
-            f"{review_result.processing_time:.2f}s"
-        )
-        
-        # Step 4: Post comments to GitHub
-        if review_result.comments:
-            logger.info(f"Posting {len(review_result.comments)} review comments to GitHub...")
-            post_result = await github_client.post_review_comments(
+        try:
+            diff_context = await github_client.fetch_pr_diff(
                 repo_full_name=job_data.repo_full_name,
                 pr_number=job_data.pr_number,
-                comments=review_result.comments,
+            )
+            print(
+                f"[STEP 1] ✅ Fetched diff: {len(diff_context.changed_files)} files, "
+                f"+{diff_context.additions}/-{diff_context.deletions}, "
+                f"size: {len(diff_context.diff_text)} chars",
+                file=sys.stderr
             )
             logger.info(
-                f"Posted {post_result.get('posted_count', 0)} comments to PR #{job_data.pr_number}"
+                f"[STEP 1] Fetched diff successfully",
+                step="fetching_diff",
+                files_changed=len(diff_context.changed_files),
+                additions=diff_context.additions,
+                deletions=diff_context.deletions,
+                diff_size=len(diff_context.diff_text),
             )
-        else:
-            logger.info("No comments to post (LLM found no issues)")
+        except Exception as e:
+            print(f"[STEP 1] ❌ Failed to fetch diff: {e}", file=sys.stderr)
+            logger.error(
+                f"[STEP 1] Failed to fetch diff: {e}",
+                step="fetching_diff",
+                error=str(e),
+                exc_info=True,
+            )
+            raise
         
+        # Step 2: Get LLM provider
+        print("[STEP 2] Getting LLM provider", file=sys.stderr)
+        logger.info(
+            "[STEP 2] Getting LLM provider",
+            step="initializing_llm",
+        )
+        try:
+            llm_provider = get_llm_provider()
+            print(
+                f"[STEP 2] ✅ LLM provider initialized: {llm_provider.provider_name} ({llm_provider.model})",
+                file=sys.stderr
+            )
+            logger.info(
+                f"[STEP 2] LLM provider initialized",
+                step="initializing_llm",
+                provider=llm_provider.provider_name,
+                model=llm_provider.model,
+            )
+        except Exception as e:
+            print(f"[STEP 2] ❌ Failed to initialize LLM provider: {e}", file=sys.stderr)
+            logger.error(
+                f"[STEP 2] Failed to initialize LLM provider: {e}",
+                step="initializing_llm",
+                error=str(e),
+                exc_info=True,
+            )
+            raise
+        
+        # Step 3: Analyze diff with LLM
+        print(f"[STEP 3] Starting LLM analysis (diff length: {len(diff_context.diff_text)} chars)", file=sys.stderr)
+        logger.info(
+            "[STEP 3] Starting LLM analysis",
+            step="calling_llm",
+            diff_length=len(diff_context.diff_text),
+        )
+        try:
+            review_result = await llm_provider.analyze_diff(
+                diff_text=diff_context.diff_text,
+                context=diff_context,
+            )
+            print(
+                f"[STEP 3] ✅ LLM analysis completed: {len(review_result.comments)} comments, "
+                f"{review_result.tokens_used} tokens, ${review_result.cost:.4f}, "
+                f"{review_result.processing_time:.2f}s",
+                file=sys.stderr
+            )
+            logger.info(
+                f"[STEP 3] LLM analysis completed",
+                step="calling_llm",
+                comments_count=len(review_result.comments),
+                tokens_used=review_result.tokens_used,
+                cost=review_result.cost,
+                processing_time=review_result.processing_time,
+            )
+        except Exception as e:
+            print(f"[STEP 3] ❌ LLM analysis failed: {e}", file=sys.stderr)
+            logger.error(
+                f"[STEP 3] LLM analysis failed: {e}",
+                step="calling_llm",
+                error=str(e),
+                exc_info=True,
+            )
+            raise
+        
+        # Step 4: Parse comments (if needed)
+        print(f"[STEP 4] Parsing review comments: {len(review_result.comments)} comments", file=sys.stderr)
+        logger.info(
+            "[STEP 4] Parsing review comments",
+            step="parsed_comments",
+            comments_count=len(review_result.comments),
+        )
+        
+        # Step 5: Post comments to GitHub
+        if review_result.comments:
+            print(f"[STEP 5] Posting {len(review_result.comments)} review comments to GitHub", file=sys.stderr)
+            logger.info(
+                f"[STEP 5] Posting {len(review_result.comments)} review comments to GitHub",
+                step="posting_comments",
+                comments_count=len(review_result.comments),
+            )
+            try:
+                post_result = await github_client.post_review_comments(
+                    repo_full_name=job_data.repo_full_name,
+                    pr_number=job_data.pr_number,
+                    comments=review_result.comments,
+                )
+                posted_count = post_result.get('posted_count', 0)
+                print(
+                    f"[STEP 5] ✅ Posted {posted_count}/{len(review_result.comments)} comments to PR #{job_data.pr_number}",
+                    file=sys.stderr
+                )
+                logger.info(
+                    f"[STEP 5] Posted comments successfully",
+                    step="posting_comments",
+                    posted_count=posted_count,
+                    total_comments=len(review_result.comments),
+                )
+            except Exception as e:
+                print(f"[STEP 5] ❌ Failed to post comments: {e}", file=sys.stderr)
+                logger.error(
+                    f"[STEP 5] Failed to post comments: {e}",
+                    step="posting_comments",
+                    error=str(e),
+                    exc_info=True,
+                )
+                raise
+        else:
+            print("[STEP 5] No comments to post (LLM found no issues)", file=sys.stderr)
+            logger.info(
+                "[STEP 5] No comments to post (LLM found no issues)",
+                step="posting_comments",
+                comments_count=0,
+            )
+        
+        print(
+            f"✅ Job {job_data.job_id} completed successfully for PR #{job_data.pr_number}",
+            file=sys.stderr
+        )
         logger.info(
             f"Job {job_data.job_id} completed successfully for PR #{job_data.pr_number}"
         )

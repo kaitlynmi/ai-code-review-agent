@@ -17,6 +17,11 @@
 - **[Worker 故障排查](./troubleshooting/WORKER_TROUBLESHOOTING.md)** - Worker 相关问题解决
 - **[Worker 状态说明](./troubleshooting/WORKER_STATUS.md)** - Worker 状态和监控
 
+### 演示与展示 (demo/)
+- **[演示仓库设置](./demo/DEMO_REPOSITORY_SETUP.md)** - 创建演示仓库和 PR 的完整指南
+- **[演示仓库 README 模板](./demo/DEMO_REPOSITORY_README.md)** - 演示仓库的 README 模板
+- **[自动审查 vs 手动测试](./demo/AUTO_VS_MANUAL_REVIEW.md)** - 自动工作流程与测试脚本的区别
+
 ### 设计与架构 (根目录)
 - **[Job Queue 设计](./JOB_QUEUE_DESIGN.md)** - 任务队列系统设计文档
 - **[Admin Dashboard](./ADMIN_DASHBOARD.md)** - 管理仪表板说明
