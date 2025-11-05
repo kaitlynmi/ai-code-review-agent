@@ -75,11 +75,31 @@ Railway 可能认为 worker 服务不健康，因为：
    - 设置为 **"Always"**（不是 "On Failure"）
    - 这确保 worker 会持续运行
 
-5. **禁用健康检查（如果可用）**
-   - 在 Railway Dashboard → Worker Service → Settings
-   - 查找 "Health Check" 或 "Health Check Path" 设置
-   - 如果存在，**禁用或清空**它
-   - Worker 服务不需要 HTTP 健康检查
+5. **配置健康检查（已自动处理！）**
+   
+   **Worker 现在包含一个简单的 HTTP 健康检查端点！**
+   
+   在 Railway Dashboard → Worker Service → Settings：
+   
+   - **Health Check Path**: 设置为 `/health`
+   
+   - **环境变量**:
+     ```
+     SERVICE_TYPE=worker
+     PORT=<Railway 会自动设置，或手动设置>
+     ```
+   
+   **工作原理：**
+   - Worker 启动时会自动检测 `PORT` 环境变量
+   - 如果 `PORT` 存在，会在该端口启动一个最小 HTTP 服务器
+   - 健康检查端点 `/health` 返回 `200 OK` 和文本 "healthy"
+   - Railway 会调用 `http://localhost:$PORT/health` 验证 worker 运行状态
+   - 如果 `PORT` 未设置，健康检查服务器不会启动（本地开发时没问题）
+   
+   **注意**: 
+   - ✅ Worker 现在有了 HTTP 健康检查端点，Railway 不会再杀死它
+   - ✅ 健康检查服务器只监听 `/health` 路径，非常轻量
+   - ✅ 不影响 worker 的主要功能（处理 Redis 队列任务）
 
 ### 方案 2: 检查服务类型
 
@@ -131,13 +151,22 @@ Railway 可能认为 worker 服务不健康，因为：
 
 ## 常见错误配置
 
-### 错误 1: Worker 服务有 PORT 环境变量
-**问题**: Railway 认为这是 web 服务，期望 HTTP 端点
-**解决**: 删除 PORT 环境变量，只保留 SERVICE_TYPE=worker
+### 错误 1: Worker 服务缺少 PORT 环境变量（已更新！）
+**问题**: Railway 需要 PORT 来启动健康检查服务器
+**解决**: 
+   - ✅ **现在可以设置 PORT 环境变量**（Railway 通常会自动设置）
+   - Worker 会使用 PORT 启动健康检查服务器
+   - 健康检查路径设置为 `/health`
+   - 确保 `SERVICE_TYPE=worker` 仍然设置
 
-### 错误 2: Worker 服务启用了健康检查
+### 错误 2: Worker 服务健康检查失败（已解决！）
 **问题**: Railway 尝试访问 HTTP 端点，但 worker 没有
-**解决**: 禁用健康检查或配置正确的健康检查路径
+**症状**: Worker 在 3-5 秒后被 SIGTERM 终止
+**解决**: 
+   - ✅ **已修复**: Worker 现在包含健康检查端点 `/health`
+   - 在 Railway Dashboard → Worker Service → Settings → Health Check Path: 设置为 `/health`
+   - 确保 Railway 设置了 `PORT` 环境变量（通常会自动设置）
+   - Worker 会自动在该端口启动健康检查服务器
 
 ### 错误 3: Restart Policy 设置为 "On Failure"
 **问题**: Worker 停止后不会自动重启

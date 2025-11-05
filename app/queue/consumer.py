@@ -20,6 +20,12 @@ else:
     # Fallback for older Python versions
     os.environ.setdefault('PYTHONUNBUFFERED', '1')
 
+try:
+    from aiohttp import web
+    AIOHTTP_AVAILABLE = True
+except ImportError:
+    AIOHTTP_AVAILABLE = False
+
 from app.core.logging import get_logger
 from app.db.connection import get_db_pool
 from app.db.redis_client import get_redis
@@ -609,6 +615,45 @@ async def move_to_dead_letter(job_data: JobData) -> None:
         )
 
 
+async def health_check_handler(request):
+    """Simple health check endpoint for Railway."""
+    return web.Response(text="healthy", status=200)
+
+
+async def start_health_server():
+    """Start minimal HTTP server for Railway healthchecks."""
+    if not AIOHTTP_AVAILABLE:
+        logger.warning("aiohttp not available, skipping health check server")
+        return None
+    
+    # Only start health server if PORT is set (Railway will set this)
+    port = os.getenv('PORT')
+    if not port:
+        logger.info("PORT not set, skipping health check server (not needed for local dev)")
+        return None
+    
+    try:
+        port = int(port)
+        app = web.Application()
+        app.router.add_get('/health', health_check_handler)
+        
+        runner = web.AppRunner(app)
+        await runner.setup()
+        
+        site = web.TCPSite(runner, '0.0.0.0', port)
+        await site.start()
+        
+        logger.info(f"Health check server started on port {port}")
+        print(f"✅ Health check server started on port {port}", file=sys.stderr)
+        sys.stderr.flush()
+        return runner
+    except Exception as e:
+        logger.warning(f"Failed to start health check server: {e}")
+        print(f"⚠️  Failed to start health check server: {e}", file=sys.stderr)
+        sys.stderr.flush()
+        return None
+
+
 async def run_worker() -> None:
     """Run the worker process."""
     # Early output to ensure Railway sees logs
@@ -621,6 +666,15 @@ async def run_worker() -> None:
     print("🔧 run_worker() called", file=sys.stderr)
     print("=" * 60, file=sys.stderr)
     sys.stderr.flush()
+    
+    # Start health check server (for Railway)
+    health_runner = None
+    try:
+        health_runner = await start_health_server()
+    except Exception as e:
+        logger.warning(f"Error starting health server: {e}")
+        print(f"⚠️  Error starting health server: {e}", file=sys.stderr)
+        sys.stderr.flush()
     
     # Setup signal handlers
     try:
@@ -650,6 +704,16 @@ async def run_worker() -> None:
         import traceback
         traceback.print_exc()
     finally:
+        # Cleanup health check server
+        if health_runner:
+            try:
+                await health_runner.cleanup()
+                logger.info("Health check server stopped")
+                print("🛑 Health check server stopped", file=sys.stderr)
+                sys.stderr.flush()
+            except Exception as e:
+                logger.warning(f"Error stopping health server: {e}")
+        
         logger.info("Worker stopped")
         print("🛑 Worker stopped", file=sys.stderr)
 

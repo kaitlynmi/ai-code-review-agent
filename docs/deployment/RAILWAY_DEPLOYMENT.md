@@ -141,6 +141,26 @@ The worker runs as a separate service on Railway.
      - Key: `SERVICE_TYPE`
      - Value: `worker`
    
+   **⚠️ CRITICAL: Configure Health Check for Worker Service**
+   
+   Railway requires a health check endpoint for worker services. The worker now includes a minimal HTTP server for health checks.
+   
+   **In Railway Dashboard → Worker Service → Settings:**
+   
+   1. **Health Check Path**: Set to `/health`
+   
+   2. **Environment Variables**:
+      ```
+      SERVICE_TYPE=worker
+      PORT=<Railway will auto-set this, or you can set it manually>
+      ```
+   
+   **Important notes:**
+   - The worker now starts a minimal HTTP server on the PORT (Railway sets this automatically)
+   - The health check endpoint returns `200 OK` with text "healthy"
+   - Railway will call `http://localhost:$PORT/health` to verify the worker is running
+   - If PORT is not set, the health server won't start (fine for local development)
+   
    **For Web Service (if needed):**
    - Go to web service → "Settings" → "Start Command"  
    - Set to: `bash scripts/railway_start.sh`
