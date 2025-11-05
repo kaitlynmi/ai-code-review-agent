@@ -75,29 +75,34 @@ async def process_job(job_data: JobData) -> bool:
             file=sys.stderr
         )
         print(f"{'='*60}", file=sys.stderr)
+        sys.stderr.flush()
         logger.info(
             f"Processing job {job_data.job_id} for PR #{job_data.pr_number} "
             f"from {job_data.repo_full_name} (attempt {job_data.attempt_count + 1})"
         )
         
         # Update status to processing
+        # Convert UTC-aware datetime to naive UTC for TIMESTAMP column
+        processing_time = datetime.now(UTC).replace(tzinfo=None)
         await update_job_status(
             job_data.pr_id,
             job_data.job_id,
             "processing",
-            processing_started_at=datetime.now(UTC),
+            processing_started_at=processing_time,
         )
         
         # Initialize GitHub client (use App auth if available, otherwise fallback to PAT)
         from app.core.config import settings
 
         print("[INIT] Initializing GitHub client...", file=sys.stderr)
+        sys.stderr.flush()
         if (
             settings.github_app_id
             and settings.github_app_private_key_path
             and settings.github_app_installation_id
         ):
             print(f"[INIT] Using GitHub App auth (App ID: {settings.github_app_id})", file=sys.stderr)
+            sys.stderr.flush()
             github_client = GitHubClient(
                 app_id=settings.github_app_id,
                 private_key_path=settings.github_app_private_key_path,
@@ -105,15 +110,18 @@ async def process_job(job_data: JobData) -> bool:
             )
         else:
             print("[INIT] Using Personal Access Token (PAT)", file=sys.stderr)
+            sys.stderr.flush()
             logger.warning(
                 "GitHub App credentials not configured, using PAT (not recommended)"
             )
             github_client = GitHubClient(token=settings.github_token)
         
         print("[INIT] ✅ GitHub client initialized successfully", file=sys.stderr)
+        sys.stderr.flush()
         
         # Step 1: Fetch PR diff from GitHub
         print(f"[STEP 1] Fetching diff for PR #{job_data.pr_number} from {job_data.repo_full_name}", file=sys.stderr)
+        sys.stderr.flush()
         logger.info(
             f"[STEP 1] Fetching diff for PR #{job_data.pr_number} from {job_data.repo_full_name}",
             step="fetching_diff",
@@ -131,6 +139,7 @@ async def process_job(job_data: JobData) -> bool:
                 f"size: {len(diff_context.diff_text)} chars",
                 file=sys.stderr
             )
+            sys.stderr.flush()
             logger.info(
                 f"[STEP 1] Fetched diff successfully",
                 step="fetching_diff",
@@ -141,6 +150,7 @@ async def process_job(job_data: JobData) -> bool:
             )
         except Exception as e:
             print(f"[STEP 1] ❌ Failed to fetch diff: {e}", file=sys.stderr)
+            sys.stderr.flush()
             logger.error(
                 f"[STEP 1] Failed to fetch diff: {e}",
                 step="fetching_diff",
@@ -151,6 +161,7 @@ async def process_job(job_data: JobData) -> bool:
         
         # Step 2: Get LLM provider
         print("[STEP 2] Getting LLM provider", file=sys.stderr)
+        sys.stderr.flush()
         logger.info(
             "[STEP 2] Getting LLM provider",
             step="initializing_llm",
@@ -161,6 +172,7 @@ async def process_job(job_data: JobData) -> bool:
                 f"[STEP 2] ✅ LLM provider initialized: {llm_provider.provider_name} ({llm_provider.model})",
                 file=sys.stderr
             )
+            sys.stderr.flush()
             logger.info(
                 f"[STEP 2] LLM provider initialized",
                 step="initializing_llm",
@@ -169,6 +181,7 @@ async def process_job(job_data: JobData) -> bool:
             )
         except Exception as e:
             print(f"[STEP 2] ❌ Failed to initialize LLM provider: {e}", file=sys.stderr)
+            sys.stderr.flush()
             logger.error(
                 f"[STEP 2] Failed to initialize LLM provider: {e}",
                 step="initializing_llm",
@@ -179,6 +192,7 @@ async def process_job(job_data: JobData) -> bool:
         
         # Step 3: Analyze diff with LLM
         print(f"[STEP 3] Starting LLM analysis (diff length: {len(diff_context.diff_text)} chars)", file=sys.stderr)
+        sys.stderr.flush()
         logger.info(
             "[STEP 3] Starting LLM analysis",
             step="calling_llm",
@@ -195,6 +209,7 @@ async def process_job(job_data: JobData) -> bool:
                 f"{review_result.processing_time:.2f}s",
                 file=sys.stderr
             )
+            sys.stderr.flush()
             logger.info(
                 f"[STEP 3] LLM analysis completed",
                 step="calling_llm",
@@ -205,6 +220,7 @@ async def process_job(job_data: JobData) -> bool:
             )
         except Exception as e:
             print(f"[STEP 3] ❌ LLM analysis failed: {e}", file=sys.stderr)
+            sys.stderr.flush()
             logger.error(
                 f"[STEP 3] LLM analysis failed: {e}",
                 step="calling_llm",
@@ -215,6 +231,7 @@ async def process_job(job_data: JobData) -> bool:
         
         # Step 4: Parse comments (if needed)
         print(f"[STEP 4] Parsing review comments: {len(review_result.comments)} comments", file=sys.stderr)
+        sys.stderr.flush()
         logger.info(
             "[STEP 4] Parsing review comments",
             step="parsed_comments",
@@ -224,6 +241,7 @@ async def process_job(job_data: JobData) -> bool:
         # Step 5: Post comments to GitHub
         if review_result.comments:
             print(f"[STEP 5] Posting {len(review_result.comments)} review comments to GitHub", file=sys.stderr)
+            sys.stderr.flush()
             logger.info(
                 f"[STEP 5] Posting {len(review_result.comments)} review comments to GitHub",
                 step="posting_comments",
@@ -240,6 +258,7 @@ async def process_job(job_data: JobData) -> bool:
                     f"[STEP 5] ✅ Posted {posted_count}/{len(review_result.comments)} comments to PR #{job_data.pr_number}",
                     file=sys.stderr
                 )
+                sys.stderr.flush()
                 logger.info(
                     f"[STEP 5] Posted comments successfully",
                     step="posting_comments",
@@ -248,6 +267,7 @@ async def process_job(job_data: JobData) -> bool:
                 )
             except Exception as e:
                 print(f"[STEP 5] ❌ Failed to post comments: {e}", file=sys.stderr)
+                sys.stderr.flush()
                 logger.error(
                     f"[STEP 5] Failed to post comments: {e}",
                     step="posting_comments",
@@ -257,6 +277,7 @@ async def process_job(job_data: JobData) -> bool:
                 raise
         else:
             print("[STEP 5] No comments to post (LLM found no issues)", file=sys.stderr)
+            sys.stderr.flush()
             logger.info(
                 "[STEP 5] No comments to post (LLM found no issues)",
                 step="posting_comments",
@@ -267,16 +288,19 @@ async def process_job(job_data: JobData) -> bool:
             f"✅ Job {job_data.job_id} completed successfully for PR #{job_data.pr_number}",
             file=sys.stderr
         )
+        sys.stderr.flush()
         logger.info(
             f"Job {job_data.job_id} completed successfully for PR #{job_data.pr_number}"
         )
         
         # Update status to completed
+        # Convert UTC-aware datetime to naive UTC for TIMESTAMP column
+        completed_time = datetime.now(UTC).replace(tzinfo=None)
         await update_job_status(
             job_data.pr_id,
             job_data.job_id,
             "completed",
-            completed_at=datetime.now(UTC),
+            completed_at=completed_time,
         )
         
         return True
@@ -286,8 +310,10 @@ async def process_job(job_data: JobData) -> bool:
         print(f"\n{'='*60}", file=sys.stderr)
         print(f"❌ ERROR processing job {job_data.job_id}: {e}", file=sys.stderr)
         print(f"{'='*60}", file=sys.stderr)
+        sys.stderr.flush()
         import traceback
         traceback.print_exc(file=sys.stderr)
+        sys.stderr.flush()
         
         logger.error(
             f"Error processing job {job_data.job_id}: {e}",
@@ -331,11 +357,21 @@ async def update_job_status(
         param_idx = 2
         
         if processing_started_at:
+            # Convert to timezone-naive UTC datetime for TIMESTAMP column
+            if processing_started_at.tzinfo is not None:
+                # If timezone-aware, convert to UTC then remove timezone info
+                processing_started_at = processing_started_at.astimezone(UTC).replace(tzinfo=None)
+            # If already naive, assume it's UTC and use as-is
             update_fields.append(f"processing_started_at = ${param_idx}")
             params.append(processing_started_at)
             param_idx += 1
         
         if completed_at:
+            # Convert to timezone-naive UTC datetime for TIMESTAMP column
+            if completed_at.tzinfo is not None:
+                # If timezone-aware, convert to UTC then remove timezone info
+                completed_at = completed_at.astimezone(UTC).replace(tzinfo=None)
+            # If already naive, assume it's UTC and use as-is
             update_fields.append(f"completed_at = ${param_idx}")
             params.append(completed_at)
             param_idx += 1
