@@ -2,16 +2,55 @@
 
 ## 问题
 
+### 问题 1: Worker 服务在启动时被停止
+
 Worker 服务在启动时被 Railway 发送 SIGTERM 停止，显示 "Stopping Container"。
 
+### 问题 2: Railway 日志不显示
+
+部署后，Railway 日志中看不到 "Starting container" 或任何输出。
+
 ## 原因
+
+### Worker 被停止的原因
 
 Railway 可能认为 worker 服务不健康，因为：
 1. Worker 是后台服务，没有 HTTP 健康检查端点
 2. Railway 默认会检查服务是否健康
 3. 如果服务类型配置错误，Railway 可能期望 HTTP 端点
 
+### 日志不显示的原因
+
+1. **Python 输出缓冲**: Python 默认会缓冲 stdout/stderr，在容器环境中日志可能不会立即显示
+2. **没有强制刷新**: 输出没有被立即刷新到流
+3. **环境变量未设置**: `PYTHONUNBUFFERED` 环境变量未设置
+
 ## 解决方案
+
+### 方案 0: 修复日志输出缓冲（必须先解决）
+
+**问题**: Railway 看不到日志输出
+
+**解决方法**:
+
+1. **代码已自动处理**:
+   - ✅ `PYTHONUNBUFFERED=1` 已在启动脚本中设置
+   - ✅ `flush()` 调用已在关键位置添加
+   - ✅ 输出同时发送到 stdout 和 stderr
+
+2. **如果仍然看不到日志**:
+   - 检查 Railway Dashboard → Worker Service → Variables
+   - 确保没有覆盖 `PYTHONUNBUFFERED` 环境变量
+   - 可以手动添加: `PYTHONUNBUFFERED=1`
+
+3. **验证日志输出**:
+   - 部署后应该立即看到:
+     ```
+     ============================================================
+     🚀 Worker process starting...
+     ============================================================
+     🔧 Worker startup - Step 1: Initializing...
+     ```
 
 ### 方案 1: 确保 Worker 服务配置正确（推荐）
 

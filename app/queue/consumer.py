@@ -2,9 +2,23 @@
 
 import asyncio
 import json
+import os
 import signal
 import sys
 from datetime import UTC, datetime
+
+# Force unbuffered output for Railway logging
+# Set PYTHONUNBUFFERED in environment or use flush() calls
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(line_buffering=True)
+        sys.stderr.reconfigure(line_buffering=True)
+    except Exception:
+        # Fallback: ensure unbuffered via environment
+        os.environ.setdefault('PYTHONUNBUFFERED', '1')
+else:
+    # Fallback for older Python versions
+    os.environ.setdefault('PYTHONUNBUFFERED', '1')
 
 from app.core.logging import get_logger
 from app.db.connection import get_db_pool
@@ -350,12 +364,17 @@ async def consume_jobs() -> None:
     # Immediately signal that worker is ready (for Railway health checks)
     print("✅ Worker initialized and ready", file=sys.stderr)
     print("✅ Worker initialized and ready", file=sys.stdout)
+    sys.stdout.flush()
+    sys.stderr.flush()
     
     print("🔌 Connecting to Redis...", file=sys.stderr)
+    sys.stderr.flush()
     try:
         redis = await get_redis()
         print("✅ Redis connection established", file=sys.stderr)
         print("✅ Redis connection established", file=sys.stdout)
+        sys.stdout.flush()
+        sys.stderr.flush()
     except Exception as e:
         print(f"❌ Redis connection failed: {e}", file=sys.stderr)
         import traceback
@@ -382,6 +401,10 @@ async def consume_jobs() -> None:
     print(f"📋 Waiting for jobs from stream: {STREAM_NAME}", file=sys.stderr)
     print(f"🔄 Blocking for up to {BLOCK_TIME}ms when no messages...", file=sys.stderr)
     print("🚀 Worker is running and ready to process jobs", file=sys.stdout)
+    print("=" * 60, file=sys.stdout)
+    print("✅ Worker is fully operational", file=sys.stdout)
+    sys.stdout.flush()
+    sys.stderr.flush()
     
     current_job = None
     
@@ -552,9 +575,16 @@ async def move_to_dead_letter(job_data: JobData) -> None:
 
 async def run_worker() -> None:
     """Run the worker process."""
+    # Early output to ensure Railway sees logs
+    print("=" * 60, file=sys.stdout)
+    print("🚀 Worker process starting...", file=sys.stdout)
+    print("=" * 60, file=sys.stdout)
+    sys.stdout.flush()
+    
     print("=" * 60, file=sys.stderr)
     print("🔧 run_worker() called", file=sys.stderr)
     print("=" * 60, file=sys.stderr)
+    sys.stderr.flush()
     
     # Setup signal handlers
     try:
@@ -567,9 +597,12 @@ async def run_worker() -> None:
     logger.info("Starting review worker...")
     print("🚀 Review worker starting...", file=sys.stderr)
     print("🚀 Review worker starting...", file=sys.stdout)
+    sys.stdout.flush()
+    sys.stderr.flush()
     
     try:
         print("📞 Calling consume_jobs()...", file=sys.stderr)
+        sys.stderr.flush()
         await consume_jobs()
         print("⚠️  consume_jobs() returned (unexpected)", file=sys.stderr)
     except KeyboardInterrupt:

@@ -19,6 +19,8 @@ case "$SERVICE" in
         ;;
     worker)
         echo "Starting worker service..."
+        # Ensure unbuffered output for Railway logging
+        export PYTHONUNBUFFERED=1
         exec python -m app.queue.consumer
         ;;
     *)
