@@ -77,21 +77,26 @@ async def process_job(job_data: JobData) -> bool:
         # Initialize GitHub client (use App auth if available, otherwise fallback to PAT)
         from app.core.config import settings
 
+        print("[INIT] Initializing GitHub client...", file=sys.stderr)
         if (
             settings.github_app_id
             and settings.github_app_private_key_path
             and settings.github_app_installation_id
         ):
+            print(f"[INIT] Using GitHub App auth (App ID: {settings.github_app_id})", file=sys.stderr)
             github_client = GitHubClient(
                 app_id=settings.github_app_id,
                 private_key_path=settings.github_app_private_key_path,
                 installation_id=settings.github_app_installation_id,
             )
         else:
+            print("[INIT] Using Personal Access Token (PAT)", file=sys.stderr)
             logger.warning(
                 "GitHub App credentials not configured, using PAT (not recommended)"
             )
             github_client = GitHubClient(token=settings.github_token)
+        
+        print("[INIT] ✅ GitHub client initialized successfully", file=sys.stderr)
         
         # Step 1: Fetch PR diff from GitHub
         print(f"[STEP 1] Fetching diff for PR #{job_data.pr_number} from {job_data.repo_full_name}", file=sys.stderr)
@@ -263,6 +268,13 @@ async def process_job(job_data: JobData) -> bool:
         return True
         
     except Exception as e:
+        # Print error to console with full traceback
+        print(f"\n{'='*60}", file=sys.stderr)
+        print(f"❌ ERROR processing job {job_data.job_id}: {e}", file=sys.stderr)
+        print(f"{'='*60}", file=sys.stderr)
+        import traceback
+        traceback.print_exc(file=sys.stderr)
+        
         logger.error(
             f"Error processing job {job_data.job_id}: {e}",
             exc_info=True,
